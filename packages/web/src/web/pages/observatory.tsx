@@ -1,0 +1,41 @@
+import { useRef, useState } from 'react';
+import { Orbit, ArrowUpRight, ChevronDown, Pause, Play, RotateCcw, Plus, Minus, Maximize, Camera, SlidersHorizontal, X, Move, Mouse, Info, Check, Layers3, Sparkles } from 'lucide-react';
+import Galaxy, { type GalaxyHandle, type View } from '../components/galaxy';
+
+export default function Observatory() {
+  const [playing,setPlaying]=useState(!window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  const [brightness,setBrightness]=useState(1.25);
+  const [stars,setStars]=useState(true), [dust,setDust]=useState(true), [labels,setLabels]=useState(true);
+  const [view,setView]=useState<View>('Perspective');
+  const [panel,setPanel]=useState(false), [info,setInfo]=useState(false);
+  const [ready,setReady]=useState(false), [error,setError]=useState(false);
+  const [notice,setNotice]=useState('');
+  const handle=useRef<GalaxyHandle|null>(null);
+  const reset=()=>{setView('Perspective');setBrightness(1.25);setStars(true);setDust(true);setLabels(true);handle.current?.reset();};
+  const fullscreen=async()=>{ try { if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen(); } catch {setNotice('Fullscreen is unavailable in this preview.');} };
+  return <main className="observatory">
+    <Galaxy playing={playing} brightness={brightness} stars={stars} dust={dust} view={view} handle={handle} onReady={()=>setReady(true)} onError={()=>setError(true)} />
+    <div className="space-vignette" />
+    <header className="masthead">
+      <a className="brand" href="/" aria-label="Orbit observatory home"><span className="brand-icon"><Orbit size={25}/></span> ORBIT<span className="brand-divider"/> <span className="brand-sub">A window into the universe</span></a>
+      <div className="header-right"><span className="live-dot"/><span className="live-label">LIVE EXPLORATION</span><button className="about-button" onClick={()=>setInfo(true)}>About this galaxy <ArrowUpRight size={15}/></button><button className="mobile-settings icon-button" aria-label="Observation settings" onClick={()=>setPanel(!panel)}><SlidersHorizontal size={19}/></button></div>
+    </header>
+    <section className="title-block"><div className="eyebrow"><span className="gold-line"/> THE LOCAL GROUP / MESSIER 31</div><h1>Andromeda<span className="title-period">.</span></h1><p>A trillion stars. One extraordinary neighbor.<br/>Explore a galaxy beyond our own.</p><div className="title-tags"><span>SPIRAL GALAXY</span><span className="tag-secondary">3D EXPLORER</span></div></section>
+    <div className="scene-coordinates"><span>RA 00h 42m 44s</span><span>DEC +41° 16′ 09″</span></div>
+    {labels && ready && <div className="nucleus-label"><span className="label-dot"/><span className="leader"/><div>Galactic nucleus<small>THE HEART OF M31</small></div></div>}
+    {(!ready || error) && <div className="scene-message">{error ? 'Your browser could not start WebGL. Enable hardware acceleration to explore.' : 'Mapping the stars…'}</div>}
+    <aside className={`observation-panel ${panel?'is-open':''}`}>
+      <div className="panel-heading"><span><SlidersHorizontal size={15}/> Observation deck</span><button className="close-panel icon-button" aria-label="Close settings" onClick={()=>setPanel(false)}><X size={16}/></button><span className="panel-number">01</span></div>
+      <div className="object-info"><div className="section-label">YOU’RE EXPLORING</div><div className="object-name">Messier 31 <span>M31</span></div><p>Our nearest major galactic neighbor.</p></div>
+      <div className="facts"><div><span>DISTANCE FROM EARTH</span><strong>2.5 <small>million light-years</small></strong></div><div><span>CONSTELLATION</span><strong className="fact-small">Andromeda <ArrowUpRight size={13}/></strong></div><div><span>GALAXY TYPE</span><strong className="fact-small">Barred spiral <span className="tiny-orbit">◎</span></strong></div></div>
+      <div className="settings-section"><label className="section-label" htmlFor="view">CAMERA VIEW</label><div className="select-wrap"><Orbit size={16}/><select id="view" value={view} onChange={e=>setView(e.target.value as View)}><option>Perspective</option><option>Face-on</option><option>Edge-on</option></select><ChevronDown size={14}/></div>
+      <div className="slider-heading"><label className="section-label" htmlFor="brightness">LUMINOSITY</label><span>{Math.round(brightness/1.25*100)}%</span></div><input id="brightness" aria-label="Luminosity" className="brightness" type="range" min="0.35" max="2.15" step="0.05" value={brightness} onChange={e=>setBrightness(+e.target.value)} style={{'--range-fill':`${(brightness-.35)/1.8*100}%`} as React.CSSProperties}/><div className="slider-ends"><span>Subtle</span><span>Radiant</span></div></div>
+      <div className="settings-section layer-section"><div className="section-label">VISIBLE LAYERS</div>{[{name:'Stellar field',icon:Sparkles,value:stars,set:setStars},{name:'Cosmic dust',icon:Layers3,value:dust,set:setDust},{name:'Annotations',icon:Info,value:labels,set:setLabels}].map(layer=><div className="layer" key={layer.name}><span><layer.icon size={14}/>{layer.name}</span><button role="switch" aria-checked={layer.value} aria-label={layer.name} className={`toggle ${layer.value?'active':''}`} onClick={()=>layer.set(!layer.value)}><span/></button></div>)}</div>
+      <div className="panel-note"><span className="live-dot"/> An entire galaxy. At your fingertips.</div>
+    </aside>
+    <section className="bottom-area"><div className="interaction-hint"><span><Move size={13}/> Drag to orbit</span><span className="hint-dot">·</span><span><Mouse size={13}/> Scroll to explore</span></div><div className="camera-toolbar"><button className="motion-button" onClick={()=>setPlaying(!playing)}>{playing?<Pause size={16}/>:<Play size={16}/>}<span>{playing?'Pause rotation':'Resume rotation'}</span></button><span className="toolbar-divider"/><button className="icon-button" title="Zoom in" aria-label="Zoom in" onClick={()=>handle.current?.zoom(.85)}><Plus size={19}/></button><button className="icon-button" title="Zoom out" aria-label="Zoom out" onClick={()=>handle.current?.zoom(1.18)}><Minus size={19}/></button><button className="icon-button" title="Reset view" aria-label="Reset view" onClick={reset}><RotateCcw size={16}/></button><span className="toolbar-divider"/><button className="icon-button" title="Save galaxy image" aria-label="Save galaxy image" onClick={()=>{handle.current?.capture();setNotice('Observation saved as a PNG image.');}}><Camera size={17}/></button><button className="icon-button" title="Fullscreen" aria-label="Fullscreen" onClick={fullscreen}><Maximize size={16}/></button></div></section>
+    <footer><span><span className="footer-dot"/> MADE FOR THE CURIOUS</span><span>Artistic 3D visualization <span className="footer-slash">/</span> Not to scale <span className="footer-slash">/</span> Data: NASA</span><span className="footer-right">LOOK A LITTLE FURTHER <ArrowUpRight size={12}/></span></footer>
+    {notice && <output className="toast"><Check size={16}/>{notice}<button aria-label="Dismiss notification" onClick={()=>setNotice('')}><X size={14}/></button></output>}
+    {info && <div className="modal-backdrop"><dialog open className="about-modal" aria-modal="true" aria-labelledby="about-title" onCancel={()=>setInfo(false)}><button className="modal-close icon-button" aria-label="Close about" onClick={()=>setInfo(false)}><X size={20}/></button><div className="eyebrow">OUR COSMIC NEIGHBOR</div><h2 id="about-title">Light from another world.</h2><p>The light you see from Andromeda has traveled for about 2.5 million years. Also known as Messier 31, it is the nearest major galaxy to the Milky Way.</p><p>This interactive model uses over 120,000 particles to evoke its stellar disk, luminous central bulge, and spiral structure. Particle positions, colors, and rotation are artistic interpretations—not observational measurements. Each particle represents many stars.</p><a href="https://science.nasa.gov/mission/hubble/science/explore-the-night-sky/hubble-messier-catalog/messier-31/" target="_blank" rel="noreferrer">Discover Andromeda with NASA <ArrowUpRight size={16}/></a></dialog></div>}
+  </main>;
+}
